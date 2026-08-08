@@ -8,9 +8,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
+        ca-certificates \
         cmake \
-        ninja-build \
+        curl \
         git \
+        ninja-build \
         pkg-config \
         extra-cmake-modules \
         qt6-base-dev \
@@ -29,10 +31,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libkf6notifications-dev \
         libkf6service-dev \
         libkf6solid-dev \
+        libkf6svg-dev \
+        libkf6wallet-dev \
         libkf6widgetsaddons-dev \
         libkf6windowsystem-dev \
         libkf6colorscheme-dev \
         libkf6networkmanagerqt-dev \
+        libkf6kcmutils-dev \
         libkf6modemmanagerqt-dev \
         libplasma-dev \
     && apt-get clean \

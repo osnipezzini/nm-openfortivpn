@@ -13,7 +13,8 @@ SRC="${SRC_DIR:-/src}"
 BUILD="${BUILD_DIR:-/build}"
 DIST="${DIST_DIR:-/dist}"
 TARGET="${TARGET:-plasmanetworkmanagement_openfortivpnui}"
-PLASMA_NM_UPSTREAM="${PLASMA_NM_UPSTREAM:-https://invent.kde.org/network/plasma-nm.git}"
+PLASMA_NM_UPSTREAM="${PLASMA_NM_UPSTREAM:-https://github.com/KDE/plasma-nm.git}"
+PLASMA_NM_REF="${PLASMA_NM_REF:-v6.6.6}"
 CLONE_DIR="${CLONE_DIR:-/plasma-nm}"
 WIDGET_SRC="${SRC}/vpn/openfortivpn"
 
@@ -22,9 +23,9 @@ if [ ! -d "${WIDGET_SRC}" ]; then
     exit 1
 fi
 
-echo "==> Cloning plasma-nm upstream..."
+echo "==> Cloning plasma-nm upstream (ref: ${PLASMA_NM_REF})..."
 rm -rf "${CLONE_DIR}"
-git clone --depth 1 "${PLASMA_NM_UPSTREAM}" "${CLONE_DIR}"
+git clone --depth 1 --branch "${PLASMA_NM_REF}" "${PLASMA_NM_UPSTREAM}" "${CLONE_DIR}"
 
 echo "==> Overlaying vpn/openfortivpn widget..."
 rm -rf "${CLONE_DIR}/vpn/openfortivpn"
