@@ -1,0 +1,12 @@
+services:
+  build:
+    image: plasma-nm-openfortivpn-builder
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      - BUILD_UID=${BUILD_UID:-1000}
+      - BUILD_GID=${BUILD_GID:-1000}
+    volumes:
+      - ./:/src
+      - ./dist:/dist

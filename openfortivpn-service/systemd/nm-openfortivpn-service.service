@@ -1,0 +1,8 @@
+[Unit]
+Description=NetworkManager VPN plugin for openfortivpn
+After=network.target
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.NetworkManager.openfortivpn
+ExecStart=/usr/bin/openfortivpn-service --nm-dbus-service --bus-name org.freedesktop.NetworkManager.openfortivpn

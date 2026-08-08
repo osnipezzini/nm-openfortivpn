@@ -1,0 +1,8 @@
+# Instalado em: /usr/lib/NetworkManager/VPN/
+# Referência: https://developer-old.gnome.org/NetworkManager/stable/nm-vpn-plugin.html
+
+[VPN Connection]
+name=openfortivpn
+service=org.freedesktop.NetworkManager.openfortivpn
+program=/usr/bin/openfortivpn-service
+supports-multiple-connections=true
