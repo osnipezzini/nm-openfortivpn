@@ -1,0 +1,45 @@
+From 127125b7ed50bcb86dc57f6dd4ce9d3066518594 Mon Sep 17 00:00:00 2001
+From: v <v@v>
+Date: Sat, 8 Aug 2026 18:54:29 -0300
+Subject: [PATCH 1/2] models: resolve tunnel device when building VPN
+ connection details
+
+---
+ libs/models/networkmodelitem.cpp | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/libs/models/networkmodelitem.cpp b/libs/models/networkmodelitem.cpp
+index 3015ff8..19b0e75 100644
+--- a/libs/models/networkmodelitem.cpp
++++ b/libs/models/networkmodelitem.cpp
+@@ -10,6 +10,7 @@
+ 
+ #include <KLocalizedString>
+ #include <NetworkManagerQt/Manager>
++#include <NetworkManagerQt/ActiveConnection>
+ #include <NetworkManagerQt/Settings>
+ #include <NetworkManagerQt/Utils>
+ 
+@@ -131,6 +132,22 @@ QList<ConnectionDetails::ConnectionDetailSection> NetworkModelItem::detailsList(
+     }
+ 
+     NetworkManager::Device::Ptr device = NetworkManager::findNetworkInterface(m_devicePath);
++
++    // VPN items normally have no devicePath: NetworkModel deliberately keeps VPN
++    // connections device-less ("not necessary to have device for VPN connections"),
++    // so findNetworkInterface() above returns nullptr. The VPN IP configuration
++    // lives on the tunnel interface (ppp0/tun0), which the active connection lists
++    // in its "devices" — fall back to that device so the details view can show the
++    // tunnel's IPv4/IPv6 configuration.
++    if (!device
++        && (m_type == NetworkManager::ConnectionSettings::Vpn || m_type == NetworkManager::ConnectionSettings::WireGuard)
++        && !m_activeConnectionPath.isEmpty()) {
++        NetworkManager::ActiveConnection::Ptr active = NetworkManager::findActiveConnection(m_activeConnectionPath);
++        if (active && !active->devices().isEmpty()) {
++            device = NetworkManager::findNetworkInterface(active->devices().first());
++        }
++    }
++
+     NetworkManager::Connection::Ptr connection = NetworkManager::findConnectionByUuid(m_uuid);
+ 
+     // For Wi-Fi networks, pass the specific access point path for disconnected networks

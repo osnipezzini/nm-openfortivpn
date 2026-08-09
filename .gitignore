@@ -20,3 +20,4 @@ builddir/
 .vscode/
 .idea/
 *.swp
+.ai-jail
