@@ -97,3 +97,48 @@ fi
 
 echo ""
 echo "==> Done. Plugin at: ${DIST}/$(basename "${ARTIFACT:-plasmanetworkmanagement_openfortivpnui.so}")"
+
+# ------------------------------ GTK plugins (meson) ---------------------------
+echo ""
+echo "==> Building GTK plugins (meson) ..."
+GTK_SRC="${SRC}/gtk"
+GTK_BUILD="${BUILD}/gtk-build"
+
+if [ ! -d "${GTK_SRC}" ]; then
+    echo "error: ${GTK_SRC} not found" >&2
+    exit 1
+fi
+
+rm -rf "${GTK_BUILD}"
+mkdir -p "${GTK_BUILD}"
+
+echo "==> Configuring GTK plugins..."
+meson setup "${GTK_BUILD}" "${GTK_SRC}" \
+    --prefix=/usr \
+    --libdir=lib \
+    --buildtype=release \
+    -Dwith_gtk3=enabled \
+    -Dwith_gtk4=enabled
+
+echo "==> Compiling GTK plugins..."
+meson compile -C "${GTK_BUILD}"
+
+echo "==> Collecting GTK .so files..."
+mkdir -p "${DIST}"
+for so in libnm-vpn-plugin-openfortivpn.so \
+          libnm-vpn-plugin-openfortivpn-editor.so \
+          libnm-gtk4-vpn-plugin-openfortivpn-editor.so; do
+    SO_PATH="$(find "${GTK_BUILD}" -name "${so}" -type f 2>/dev/null | head -n1 || true)"
+    if [ -n "${SO_PATH}" ]; then
+        cp -v "${SO_PATH}" "${DIST}/"
+        echo "  copied: ${so}"
+    else
+        echo "  warning: ${so} not found (expected if not all GTK versions available)"
+    fi
+done
+
+if [ -n "${BUILD_UID:-}" ]; then
+    chown -R "${BUILD_UID}:${BUILD_GID:-${BUILD_UID}}" "${DIST}"
+fi
+
+echo "==> GTK plugins done"

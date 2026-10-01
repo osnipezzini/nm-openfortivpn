@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         curl \
         git \
+        meson \
         ninja-build \
         pkg-config \
         extra-cmake-modules \
@@ -20,6 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         qtkeychain-qt6-dev \
         qcoro-qt6-dev \
         libnm-dev \
+        libnma-dev \
+        libnma-gtk4-dev \
+        libgtk-3-dev \
+        libgtk-4-dev \
         libssl-dev \
         libkf6coreaddons-dev \
         libkf6dbusaddons-dev \

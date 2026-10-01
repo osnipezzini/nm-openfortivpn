@@ -110,6 +110,41 @@ install_plugin() {
     ok "plugin instalado em ${plugin_dir}"
 }
 
+install_gtk_plugins() {
+    echo "==> Plugins GTK (libnm-vpn-plugin-openfortivpn* em /usr/lib/NetworkManager) ..."
+    local gtk_dir="/usr/lib/NetworkManager"
+    sudo mkdir -p "${gtk_dir}"
+
+    local count=0
+    for so in dist/libnm-vpn-plugin-openfortivpn.so \
+              dist/libnm-vpn-plugin-openfortivpn-editor.so \
+              dist/libnm-gtk4-vpn-plugin-openfortivpn-editor.so; do
+        if [ -f "${so}" ]; then
+            sudo install -m644 "${so}" "${gtk_dir}/${so##*/}"
+            count=$((count + 1))
+        fi
+    done
+
+    if [ ${count} -gt 0 ]; then
+        ok "${count} plugin(s) GTK instalado(s) em ${gtk_dir}"
+    else
+        warn "nenhum plugin GTK encontrado em dist/"
+    fi
+}
+
+install_auth_dialog() {
+    echo "==> Wrapper auth-dialog (/usr/libexec/nm-openfortivpn-auth-dialog) ..."
+    local wrapper="/usr/libexec/nm-openfortivpn-auth-dialog"
+    sudo mkdir -p "$(dirname "${wrapper}")"
+    sudo tee "${wrapper}" > /dev/null <<EOF
+#!/usr/bin/env bash
+export PYTHONPATH="${PYTHON_DIR}\${PYTHONPATH:+:\${PYTHONPATH}}"
+exec /usr/bin/python3 -m openfortivpn_service.auth_dialog "\$@"
+EOF
+    sudo chmod 755 "${wrapper}"
+    ok "auth-dialog wrapper instalado em ${wrapper}"
+}
+
 install_name() {
     echo "==> Arquivo .name do NetworkManager ..."
     sudo mkdir -p "${name_dir}"
@@ -278,6 +313,8 @@ if [ "${INSTALL}" = "1" ]; then
     echo "========== Instalação completa (plugin + serviço) =========="
     install_openfortivpn_cli
     install_plugin
+    install_gtk_plugins
+    install_auth_dialog
     install_name
     install_service_dedicated
     install_policy

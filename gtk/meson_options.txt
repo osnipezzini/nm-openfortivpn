@@ -1,0 +1,2 @@
+option('with_gtk3', type: 'feature', value: 'auto', description: 'Build the GTK3 editor')
+option('with_gtk4', type: 'feature', value: 'auto', description: 'Build the GTK4 editor')
