@@ -1,0 +1,118 @@
+From 79a5167d54599bd4e9c53cce72a74eebc99ffc1e Mon Sep 17 00:00:00 2001
+From: Osni Pezzini Junior <osni.pezzini@gmail.com>
+Date: Thu, 1 Oct 2026 16:10:57 -0300
+Subject: [PATCH] editor: show VPN IP configuration in connection details
+
+---
+ libs/editor/connectiondetails.cpp | 55 +++++++++++++++++++++----------
+ 1 file changed, 38 insertions(+), 17 deletions(-)
+
+diff --git a/libs/editor/connectiondetails.cpp b/libs/editor/connectiondetails.cpp
+index 1a791f1..2170e21 100644
+--- a/libs/editor/connectiondetails.cpp
++++ b/libs/editor/connectiondetails.cpp
+@@ -10,6 +10,7 @@
+ 
+ #include <NetworkManagerQt/AccessPoint>
+ #include <NetworkManagerQt/ActiveConnection>
++#include <NetworkManagerQt/Manager>
+ #include <NetworkManagerQt/AdslDevice>
+ #include <NetworkManagerQt/BluetoothDevice>
+ #include <NetworkManagerQt/BondDevice>
+@@ -82,6 +83,24 @@ getConnectionDetails(const NetworkManager::Connection::Ptr &connection, const Ne
+         // Add other device types as needed
+     }
+ 
++    // A VPN has no device of its own: NetworkModel keeps VPN items device-less and the
++    // active VPN's Devices list holds the *parent* device (wlan0/eth0), whose active
++    // connection is not the VPN. The tunnel's IP configuration lives on the VPN active
++    // connection itself, so look it up by UUID.
++    if (type == NetworkManager::ConnectionSettings::Vpn && connection) {
++        const auto activeConnections = NetworkManager::activeConnections();
++        for (const NetworkManager::ActiveConnection::Ptr &ac : activeConnections) {
++            if (ac->vpn() && ac->uuid() == connection->uuid()) {
++                activeConn = ac;
++                isConnectionActive = true;
++                break;
++            }
++        }
++    }
++    const bool vpnIp = type == NetworkManager::ConnectionSettings::Vpn && activeConn;
++    const NetworkManager::IpConfig ipV4 = vpnIp ? activeConn->ipV4Config() : (device ? device->ipV4Config() : NetworkManager::IpConfig());
++    const NetworkManager::IpConfig ipV6 = vpnIp ? activeConn->ipV6Config() : (device ? device->ipV6Config() : NetworkManager::IpConfig());
++
+     // Hardware/Connection type specific details
+     if (type == NetworkManager::ConnectionSettings::Wired) {
+         QList<QPair<QString, QString>> details;
+@@ -317,23 +336,25 @@ getConnectionDetails(const NetworkManager::Connection::Ptr &connection, const Ne
+     }
+ 
+     // Get IPv4 Address and related nameservers + IPv4 default gateway
+-    if (device && device->ipV4Config().isValid() && isConnectionActive) {
++    if (ipV4.isValid() && isConnectionActive) {
+         QList<QPair<QString, QString>> details;
+-        if (!device->ipV4Config().addresses().isEmpty()) {
+-            QHostAddress addr = device->ipV4Config().addresses().first().ip();
+-            if (!addr.isNull() && addr.isGlobal()) {
++        if (!ipV4.addresses().isEmpty()) {
++            QHostAddress addr = ipV4.addresses().first().ip();
++            // VPN tunnel addresses are usually private (RFC1918), for which isGlobal()
++            // is false; show any assigned address except unusable special ones.
++            if (!addr.isNull() && !addr.isLoopback() && !addr.isLinkLocal() && !addr.isMulticast() && !addr.isBroadcast()) {
+                 details.append({i18n("IPv4 Address"), addr.toString()});
+             }
+         }
+-        if (!device->ipV4Config().gateway().isEmpty()) {
+-            QString addr = device->ipV4Config().gateway();
++        if (!ipV4.gateway().isEmpty()) {
++            QString addr = ipV4.gateway();
+             if (!addr.isNull()) {
+                 details.append({i18n("IPv4 Default Gateway"), addr});
+             }
+         }
+-        if (!device->ipV4Config().nameservers().isEmpty()) {
+-            QHostAddress addr1 = device->ipV4Config().nameservers().first();
+-            QHostAddress addr2 = device->ipV4Config().nameservers().last();
++        if (!ipV4.nameservers().isEmpty()) {
++            QHostAddress addr1 = ipV4.nameservers().first();
++            QHostAddress addr2 = ipV4.nameservers().last();
+             if (!addr1.isNull()) {
+                 details.append({i18n("IPv4 Primary Nameserver"), addr1.toString()});
+             }
+@@ -349,25 +370,25 @@ getConnectionDetails(const NetworkManager::Connection::Ptr &connection, const Ne
+     }
+ 
+     // Get IPv6 Address and related nameservers + IPv6 default gateway
+-    if (device && device->ipV6Config().isValid() && isConnectionActive) {
++    if (ipV6.isValid() && isConnectionActive) {
+         QList<QPair<QString, QString>> details;
+-        if (!device->ipV6Config().addresses().isEmpty()) {
+-            QHostAddress addr = device->ipV6Config().addresses().first().ip();
++        if (!ipV6.addresses().isEmpty()) {
++            QHostAddress addr = ipV6.addresses().first().ip();
+             if (!addr.isNull() && addr.isGlobal() && !addr.isUniqueLocalUnicast()) {
+                 details.append({i18n("IPv6 Address"), addr.toString()});
+             } else if (!addr.isNull() && addr.isGlobal() && addr.isUniqueLocalUnicast()) {
+                 details.append({i18n("IPv6 ULA Address"), addr.toString()});
+             }
+         }
+-        if (!device->ipV6Config().gateway().isEmpty()) {
+-            QString addr = device->ipV6Config().gateway();
++        if (!ipV6.gateway().isEmpty()) {
++            QString addr = ipV6.gateway();
+             if (!addr.isNull()) {
+                 details.append({i18n("IPv6 Default Gateway"), addr});
+             }
+         }
+-        if (!device->ipV6Config().nameservers().isEmpty()) {
+-            QHostAddress addr1 = device->ipV6Config().nameservers().first();
+-            QHostAddress addr2 = device->ipV6Config().nameservers().last();
++        if (!ipV6.nameservers().isEmpty()) {
++            QHostAddress addr1 = ipV6.nameservers().first();
++            QHostAddress addr2 = ipV6.nameservers().last();
+             if (!addr1.isNull()) {
+                 details.append({i18n("IPv6 Primary Nameserver"), addr1.toString()});
+             }
+-- 
+2.53.0
+

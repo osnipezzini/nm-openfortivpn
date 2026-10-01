@@ -126,11 +126,11 @@ repo raiz precisa estar montado em `/src` (entrypoint exige `CMakeLists.txt`).
 
 **Correção implementada (neste monorepo):** patches aplicados no clone upstream
 durante o docker build:
-- `patches/plasma-nm/0001-networkmodelitem-vpn-device-fallback.patch` — em
-  `detailsList()`, resolve o device do túnel via `ActiveConnection::devices()`
-  quando o item é VPN/WireGuard e `devicePath` vazio.
-- `patches/plasma-nm/0002-connectiondetails-show-private-ipv4.patch` — mostra o
-  IPv4 atribuído mesmo privado (pula só loopback/link-local/multicast/broadcast).
+- `patches/plasma-nm/0001-connectiondetails-vpn-ip-config.patch` — para VPN usa o
+  `ipV4Config()`/`ipV6Config()` da conexão ativa da VPN (achada por UUID) e mostra
+  IPv4 privado. O fix antigo (device via `ActiveConnection::devices()`) estava
+  errado: `devices()` da VPN é o device PAI (wlan0), cuja activeConnection não é a
+  VPN → `isConnectionActive=false` → seção IP nunca aparecia.
 
 **Aviso runtime:** o `.deb`/build entrega só o widget; o fix vive nas libs
 `models`/`editor` do plasma-nm. Para valer no host, rebuild do plasma-nm com os
@@ -145,8 +145,8 @@ Arquivos-chave (upstream):
 
 - `QHostAddress::isGlobal()` em `connectiondetails.cpp` — para um IP privado
   (RFC1918, ex. 10.255.255.1), `isGlobal()` retorna `false`, o que ocultaria
-  o endereço. **CONFIRMADO como bug secundário** e corrigido no patch 0002.
-- O caso principal (devicePath vazio) confirmado e corrigido no patch 0001.
+  o endereço. **CONFIRMADO como bug secundário** e corrigido no patch 0001.
+- O caso principal: VPN não tem device próprio; IP vem da ActiveConnection (patch 0001).
 
 ## Decisões técnicas
 

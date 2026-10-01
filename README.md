@@ -71,12 +71,10 @@ pela versão com o patch.
 
 Corrige o bug de **IP vazio nos detalhes** da conexão VPN no applet:
 
-1. `patches/plasma-nm/0001-networkmodelitem-vpn-device-fallback.patch` — resolve o
-   device do túnel (`ppp0`/`tun0`) via `ActiveConnection::devices()` ao montar os
-   detalhes, já que os itens VPN ficam sem `devicePath` no modelo.
-2. `patches/plasma-nm/0002-connectiondetails-show-private-ipv4.patch` — mostra o
-   IPv4 mesmo quando privado (RFC1918): o antigo `QHostAddress::isGlobal()` ocultava
-   o IP de túneis (ex.: `10.255.255.1`).
+1. `patches/plasma-nm/0001-connectiondetails-vpn-ip-config.patch` — para VPN, lê
+   IP/gateway/DNS da conexão ativa da VPN (`ActiveConnection::ipV4Config()`), já que
+   ela não tem device próprio (o `Devices` dela é o device pai, wlan0/eth0), e mostra
+   o IPv4 mesmo privado (RFC1918).
 
 Veja `patches/plasma-nm/README.md` para detalhes, regeneração e o aviso sobre a
 necessidade de rebuild do plasma-nm no host para o fix valer no Plasma instalado.
