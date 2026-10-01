@@ -19,6 +19,17 @@ log = logging.getLogger(__name__)
 SERVICE_NAME = "org.freedesktop.NetworkManager.openfortivpn"
 
 
+_TRUE = ("1", "yes", "true", "on")
+_GENERIC_KEYS = {
+    "realm": str, "otp-prompt": str, "otp-delay": int, "no-ftm-push": bool,
+    "sni": str, "insecure-ssl": bool, "cipher-list": str, "min-tls": str,
+    "seclevel-1": bool, "set-routes": bool, "half-internet-routes": bool,
+    "set-dns": bool, "use-resolvconf": bool, "pppd-use-peerdns": bool,
+    "pppd-log": str, "pppd-plugin": str, "pppd-ipparam": str, "pppd-ifname": str,
+    "pppd-call": str, "pppd-accept-remote": bool, "ifname": str, "persistent": int,
+}
+
+
 def _ip_bytes(ip: str) -> bytes | None:
     try:
         import socket
@@ -80,6 +91,9 @@ class OpenFortivpnPlugin(NM.VpnServicePlugin):
                 return NM.SETTING_VPN_SETTING_NAME
         if flags("otp") == NM.SettingSecretFlags.NOT_SAVED and not s_vpn.get_secret("otp"):
             return NM.SETTING_VPN_SETTING_NAME
+        if (flags("pem-passphrase") & NM.SettingSecretFlags.NOT_SAVED
+                and s_vpn.get_data_item("key") and not s_vpn.get_secret("pem-passphrase")):
+            return NM.SETTING_VPN_SETTING_NAME
         return ""
 
     @staticmethod
@@ -108,17 +122,25 @@ class OpenFortivpnPlugin(NM.VpnServicePlugin):
             port=int(d("port", "443")),
             username=d("user", old="username"),
             password=s_vpn.get_secret("password") or "",
-            realm=d("realm"),
             otp=s_vpn.get_secret("otp") or "",
             cookie=s_vpn.get_secret("cookie") or "",
+            pem_passphrase=s_vpn.get_secret("pem-passphrase") or "",
             ca_file=d("ca", old="ca-file"),
             user_cert=d("cert", old="user-cert"),
             user_key=d("key", old="user-key"),
             trusted_cert=[v for v in d("trusted-cert").split(";") if v],
-            insecure_ssl=d("insecure-ssl") == "yes",
-            set_routes=int(d("set-routes", "1")),
-            set_dns=int(d("set-dns", "1")),
         )
+        # chaves genéricas (default do VpnConfig quando ausente); bool/int gravam int
+        for key, kind in _GENERIC_KEYS.items():
+            raw = d(key)
+            if raw == "":
+                continue
+            attr = key.replace("-", "_")
+            try:
+                val = (raw.strip().lower() in _TRUE) if kind is bool else kind(raw)
+            except ValueError:
+                continue
+            setattr(cfg, attr, int(val) if isinstance(getattr(cfg, attr), (bool, int)) else val)
         if self._saml_enabled(s_vpn):
             cfg.saml_login = self._saml_port(s_vpn)
         return cfg
@@ -153,6 +175,7 @@ class OpenFortivpnPlugin(NM.VpnServicePlugin):
             on_disconnected=self._on_vpn_disconnected,
             on_error=self._on_vpn_error,
             on_cert_challenge=self._on_cert_challenge,
+            ifname=cfg.ifname,
         )
         self._vpn_proc.start()  # falha já reporta via on_error
         return False  # GLib.idle_add: não repetir

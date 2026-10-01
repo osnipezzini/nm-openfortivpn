@@ -1,69 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Only widgets/properties common to GTK3 and GTK4. -->
 <interface>
-  <object class="GtkAdjustment" id="port_adj">
-    <property name="lower">1</property>
-    <property name="upper">65535</property>
-    <property name="step-increment">1</property>
-    <property name="value">8020</property>
-  </object>
-  <object class="GtkBox" id="root">
-    <property name="orientation">vertical</property>
-    <property name="spacing">8</property>
-    <property name="margin-top">12</property>
-    <property name="margin-bottom">12</property>
-    <property name="margin-start">12</property>
-    <property name="margin-end">12</property>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Gateway</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="gateway"><property name="hexpand">1</property></object></child>
+  <object class="GtkAdjustment" id="port_adj"><property name="lower">1</property><property name="upper">65535</property><property name="step-increment">1</property><property name="value">8020</property></object>
+  <object class="GtkAdjustment" id="delay_adj"><property name="lower">0</property><property name="upper">3600</property><property name="step-increment">1</property></object>
+  <object class="GtkAdjustment" id="persist_adj"><property name="lower">0</property><property name="upper">86400</property><property name="step-increment">1</property></object>
+  <object class="GtkNotebook" id="root">
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Gateway</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="gateway"><property name="hexpand">1</property><property name="tooltip-text">Servidor VPN (host[:porta]).</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Usuário</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="user"><property name="hexpand">1</property><property name="tooltip-text">Nome de usuário.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Senha</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="password"><property name="hexpand">1</property><property name="tooltip-text">Senha do usuário.</property><property name="visibility">0</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Certificado CA</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="ca"><property name="hexpand">1</property><property name="tooltip-text">Bundle PEM para verificar o gateway, em vez do repositório do sistema.</property></object></child>
+          <child><object class="GtkButton" id="ca_btn"><property name="label">…</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Certificado do usuário</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="cert"><property name="hexpand">1</property><property name="tooltip-text">Certificado PEM do cliente.</property></object></child>
+          <child><object class="GtkButton" id="cert_btn"><property name="label">…</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Chave do usuário</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="key"><property name="hexpand">1</property><property name="tooltip-text">Chave PEM do cliente.</property></object></child>
+          <child><object class="GtkButton" id="key_btn"><property name="label">…</property></object></child>
+        </object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Usuário</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="user"><property name="hexpand">1</property></object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">Geral</property></object></child>
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkCheckButton" id="otp"><property name="label">Pedir OTP a cada conexão</property><property name="tooltip-text">Solicita o código OTP a cada conexão, sem salvá-lo.</property></object></child>
+        <child><object class="GtkCheckButton" id="tfa"><property name="label">Autenticação em dois fatores (2FA)</property><property name="tooltip-text">Usa 2FA; tem precedência sobre o OTP.</property></object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkCheckButton" id="saml"><property name="label">Login SAML (navegador) – porta</property><property name="tooltip-text">Autentica pelo navegador via SAML, escutando nesta porta local.</property></object></child>
+          <child><object class="GtkSpinButton" id="saml_port"><property name="adjustment">port_adj</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Realm</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="realm"><property name="hexpand">1</property><property name="tooltip-text">Realm de autenticação.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Prompt do OTP</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="otp_prompt"><property name="hexpand">1</property><property name="tooltip-text">Procura o prompt do OTP começando com este texto.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Atraso do OTP (s)</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkSpinButton" id="otp_delay"><property name="adjustment">delay_adj</property><property name="tooltip-text">Espera este número de segundos antes de enviar o OTP.</property></object></child>
+        </object></child>
+        <child><object class="GtkCheckButton" id="no_ftm_push"><property name="label">Não usar FTM push</property><property name="tooltip-text">Não usa FTM push, mesmo que o servidor ofereça.</property></object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Senha</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="password"><property name="hexpand">1</property><property name="visibility">0</property></object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">Autenticação</property></object></child>
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Trusted cert (sha256)</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="trusted_cert"><property name="hexpand">1</property><property name="tooltip-text">Confia no gateway com este digest do certificado.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">SNI</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="sni"><property name="hexpand">1</property><property name="tooltip-text">Nome de servidor (SNI) diferente do host durante o handshake TLS.</property></object></child>
+        </object></child>
+        <child><object class="GtkCheckButton" id="insecure_ssl"><property name="label">Permitir TLS inseguro</property><property name="tooltip-text">Não desabilita protocolos/cifras TLS inseguros; habilita também TLS 1.0.</property></object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Lista de cifras</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="cipher_list"><property name="hexpand">1</property><property name="tooltip-text">Cifras OpenSSL (ex.: AES256-GCM-SHA384). Só TLS 1.2 ou inferior.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">TLS mínimo</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkComboBoxText" id="min_tls"><property name="tooltip-text">Versão mínima de TLS em vez do padrão do sistema.</property><items><item>Padrão</item><item>1.0</item><item>1.1</item><item>1.2</item><item>1.3</item></items></object></child>
+        </object></child>
+        <child><object class="GtkCheckButton" id="seclevel_1"><property name="label">Reduzir SECLEVEL para 1</property><property name="tooltip-text">Adiciona @SECLEVEL=1 à lista de cifras (limites menores para DH). TLS 1.2 ou inferior.</property></object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Senha da chave PEM</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pem_passphrase"><property name="hexpand">1</property><property name="tooltip-text">Senha da chave PEM do usuário.</property><property name="visibility">0</property></object></child>
+        </object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Certificado CA</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="ca"><property name="hexpand">1</property></object></child>
-      <child><object class="GtkButton" id="ca_btn"><property name="label">…</property></object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">Segurança/TLS</property></object></child>
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkCheckButton" id="set_routes"><property name="label">Configurar rotas</property><property name="tooltip-text">Configura as rotas quando o túnel sobe.</property></object></child>
+        <child><object class="GtkCheckButton" id="half_internet_routes"><property name="label">Rotas de meia internet</property><property name="tooltip-text">Adiciona 0.0.0.0/1 e 128.0.0.0/1 com prioridade maior, em vez de substituir a rota padrão.</property></object></child>
+        <child><object class="GtkCheckButton" id="set_dns"><property name="label">Configurar DNS</property><property name="tooltip-text">Adiciona servidores DNS e domínios de busca em /etc/resolv.conf.</property></object></child>
+        <child><object class="GtkCheckButton" id="use_resolvconf"><property name="label">Usar resolvconf</property><property name="tooltip-text">Se possível, usa o resolvconf para atualizar /etc/resolv.conf.</property></object></child>
+        <child><object class="GtkCheckButton" id="pppd_use_peerdns"><property name="label">pppd: usar DNS do peer</property><property name="tooltip-text">Pede os DNS ao servidor ppp e deixa o pppd reescrever /etc/resolv.conf.</property></object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Certificado do usuário</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="cert"><property name="hexpand">1</property></object></child>
-      <child><object class="GtkButton" id="cert_btn"><property name="label">…</property></object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">Rotas e DNS</property></object></child>
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Arquivo de log</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pppd_log"><property name="hexpand">1</property><property name="tooltip-text">Coloca o pppd em modo debug e salva o log neste arquivo.</property></object></child>
+          <child><object class="GtkButton" id="pppd_log_btn"><property name="label">…</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Plugin</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pppd_plugin"><property name="hexpand">1</property><property name="tooltip-text">Plugin do pppd em vez de configurar resolver e rotas diretamente.</property></object></child>
+          <child><object class="GtkButton" id="pppd_plugin_btn"><property name="label">…</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">ipparam</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pppd_ipparam"><property name="hexpand">1</property><property name="tooltip-text">Parâmetro extra para os scripts ip-up, ip-pre-up e ip-down.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Nome da interface</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pppd_ifname"><property name="hexpand">1</property><property name="tooltip-text">Nome da interface do pppd, se suportado.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Perfil (call)</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="pppd_call"><property name="hexpand">1</property><property name="tooltip-text">Move opções do pppd para /etc/ppp/peers/&lt;nome&gt; e usa 'call &lt;nome&gt;'.</property></object></child>
+        </object></child>
+        <child><object class="GtkCheckButton" id="pppd_accept_remote"><property name="label">Aceitar IP remoto</property><property name="tooltip-text">Invoca o pppd com 'ipcp-accept-remote'. Desative para pppd &lt; 2.5.0.</property></object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Chave do usuário</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="key"><property name="hexpand">1</property></object></child>
-      <child><object class="GtkButton" id="key_btn"><property name="label">…</property></object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">pppd</property></object></child>
+    <child><object class="GtkBox"><property name="orientation">vertical</property><property name="spacing">8</property>
+        <property name="margin-top">12</property><property name="margin-bottom">12</property><property name="margin-start">12</property><property name="margin-end">12</property>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Interface (bind)</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkEntry" id="ifname"><property name="hexpand">1</property><property name="tooltip-text">Interface à qual se vincular.</property></object></child>
+        </object></child>
+        <child><object class="GtkBox"><property name="spacing">8</property>
+          <child><object class="GtkLabel"><property name="label">Reconectar a cada (s)</property><property name="xalign">0</property><property name="width-chars">20</property></object></child>
+          <child><object class="GtkSpinButton" id="persistent"><property name="adjustment">persist_adj</property><property name="tooltip-text">Mantém a VPN em loop e reconecta a cada N segundos ao cair. 0 = desligado.</property></object></child>
+        </object></child>
     </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Trusted cert (sha256)</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="trusted_cert"><property name="hexpand">1</property></object></child>
-    </object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkLabel"><property name="label">Realm</property><property name="xalign">0</property><property name="width-chars">16</property></object></child>
-      <child><object class="GtkEntry" id="realm"><property name="hexpand">1</property></object></child>
-    </object></child>
-
-    <child><object class="GtkCheckButton" id="otp"><property name="label">Pedir OTP a cada conexão</property></object></child>
-    <child><object class="GtkCheckButton" id="tfa"><property name="label">Autenticação em dois fatores (2FA)</property></object></child>
-
-    <child><object class="GtkBox"><property name="spacing">8</property>
-      <child><object class="GtkCheckButton" id="saml"><property name="label">Login SAML (navegador) – porta</property></object></child>
-      <child><object class="GtkSpinButton" id="saml_port"><property name="adjustment">port_adj</property></object></child>
-    </object></child>
+    <child type="tab"><object class="GtkLabel"><property name="label">Outros</property></object></child>
   </object>
 </interface>

@@ -9,7 +9,8 @@ import argparse
 import sys
 
 NOT_SAVED, NOT_REQUIRED, AGENT_OWNED = 2, 4, 1
-LABELS = {"password": "Senha", "otp": "Código OTP / 2FA"}
+LABELS = {"password": "Senha", "otp": "Código OTP / 2FA",
+          "pem-passphrase": "Senha da chave privada"}
 
 
 def _read_stdin() -> tuple[dict, dict, bool]:
@@ -72,6 +73,8 @@ def _needed(args, data: dict, secrets: dict) -> list[str]:
                 need.append("password")
     if (_flags(data, "otp") == NOT_SAVED or {"otp", "2fa"} & set(args.hints)) and not saml:
         need.append("otp")
+    if _flags(data, "pem-passphrase") & NOT_SAVED and data.get("key") and not secrets.get("pem-passphrase"):
+        need.append("pem-passphrase")
     return need
 
 

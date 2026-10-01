@@ -41,6 +41,7 @@ class VpnConfig:
     pem_passphrase: str = ""
     trusted_cert: list[str] = field(default_factory=list)
     insecure_ssl: bool = False
+    sni: str = ""
     cipher_list: str = ""
     min_tls: str = ""
     seclevel_1: bool = False
@@ -117,6 +118,7 @@ class VpnConfig:
             ("user-cert", self.user_cert),
             ("user-key", self.user_key),
             ("pem-passphrase", self.pem_passphrase),
+            ("sni", self.sni),
             ("cipher-list", self.cipher_list),
             ("min-tls", self.min_tls),
             ("pppd-log", self.pppd_log),
@@ -124,8 +126,7 @@ class VpnConfig:
             ("pppd-ipparam", self.pppd_ipparam),
             ("pppd-ifname", self.pppd_ifname),
             ("pppd-call", self.pppd_call),
-            ("ppp-system", self.ppp_system),
-            ("ifname", self.ifname),
+            # ppp-system/ifname: o 1.24 ignora/rejeita no config (ifname só via CLI)
         ]:
             if val:
                 lines.append(f"{key} = {val}")

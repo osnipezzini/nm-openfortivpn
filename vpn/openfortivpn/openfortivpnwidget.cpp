@@ -12,8 +12,79 @@
 
 #include <NetworkManagerQt/Setting>
 
+#include <KUrlRequester>
+
+#include <QCheckBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+
+namespace
+{
+struct BoolOpt {
+    const char *key;
+    QCheckBox *Ui::OpenfortivpnAdvancedWidget::*box;
+    bool def;
+};
+struct TextOpt {
+    const char *key;
+    QLineEdit *Ui::OpenfortivpnAdvancedWidget::*edit;
+};
+struct UrlOpt {
+    const char *key;
+    KUrlRequester *Ui::OpenfortivpnAdvancedWidget::*edit;
+};
+
+const BoolOpt boolOpts[] = {
+    {NM_OPENFORTIVPN_KEY_NO_FTM_PUSH, &Ui::OpenfortivpnAdvancedWidget::noFtmPush, false},
+    {NM_OPENFORTIVPN_KEY_INSECURE_SSL, &Ui::OpenfortivpnAdvancedWidget::insecureSsl, false},
+    {NM_OPENFORTIVPN_KEY_SECLEVEL_1, &Ui::OpenfortivpnAdvancedWidget::seclevel1, false},
+    {NM_OPENFORTIVPN_KEY_SET_ROUTES, &Ui::OpenfortivpnAdvancedWidget::setRoutes, true},
+    {NM_OPENFORTIVPN_KEY_HALF_INTERNET_ROUTES, &Ui::OpenfortivpnAdvancedWidget::halfInternetRoutes, false},
+    {NM_OPENFORTIVPN_KEY_SET_DNS, &Ui::OpenfortivpnAdvancedWidget::setDns, true},
+    {NM_OPENFORTIVPN_KEY_USE_RESOLVCONF, &Ui::OpenfortivpnAdvancedWidget::useResolvconf, true},
+    {NM_OPENFORTIVPN_KEY_PPPD_USE_PEERDNS, &Ui::OpenfortivpnAdvancedWidget::pppdUsePeerdns, false},
+    {NM_OPENFORTIVPN_KEY_PPPD_ACCEPT_REMOTE, &Ui::OpenfortivpnAdvancedWidget::pppdAcceptRemote, true},
+};
+const TextOpt textOpts[] = {
+    {NM_OPENFORTIVPN_KEY_OTP_PROMPT, &Ui::OpenfortivpnAdvancedWidget::otpPrompt},
+    {NM_OPENFORTIVPN_KEY_SNI, &Ui::OpenfortivpnAdvancedWidget::sni},
+    {NM_OPENFORTIVPN_KEY_CIPHER_LIST, &Ui::OpenfortivpnAdvancedWidget::cipherList},
+    {NM_OPENFORTIVPN_KEY_PPPD_IPPARAM, &Ui::OpenfortivpnAdvancedWidget::pppdIpparam},
+    {NM_OPENFORTIVPN_KEY_PPPD_IFNAME, &Ui::OpenfortivpnAdvancedWidget::pppdIfname},
+    {NM_OPENFORTIVPN_KEY_PPPD_CALL, &Ui::OpenfortivpnAdvancedWidget::pppdCall},
+    {NM_OPENFORTIVPN_KEY_IFNAME, &Ui::OpenfortivpnAdvancedWidget::ifname},
+};
+const UrlOpt urlOpts[] = {
+    {NM_OPENFORTIVPN_KEY_PPPD_LOG, &Ui::OpenfortivpnAdvancedWidget::pppdLog},
+    {NM_OPENFORTIVPN_KEY_PPPD_PLUGIN, &Ui::OpenfortivpnAdvancedWidget::pppdPlugin},
+};
+
+PasswordField::PasswordOption optionFromFlags(int flags)
+{
+    if (flags == NetworkManager::Setting::None) {
+        return PasswordField::StoreForAllUsers;
+    } else if (flags == NetworkManager::Setting::AgentOwned) {
+        return PasswordField::StoreForUser;
+    } else if (flags == NetworkManager::Setting::NotSaved) {
+        return PasswordField::AlwaysAsk;
+    }
+    return PasswordField::NotRequired;
+}
+
+int flagsFromOption(PasswordField::PasswordOption o)
+{
+    switch (o) {
+    case PasswordField::StoreForAllUsers:
+        return NetworkManager::Setting::None;
+    case PasswordField::StoreForUser:
+        return NetworkManager::Setting::AgentOwned;
+    case PasswordField::AlwaysAsk:
+        return NetworkManager::Setting::NotSaved;
+    default:
+        return NetworkManager::Setting::NotRequired;
+    }
+}
+}
 
 class OpenfortivpnWidgetPrivate
 {
@@ -50,6 +121,8 @@ OpenfortivpnWidget::OpenfortivpnWidget(const NetworkManager::VpnSetting::Ptr &se
     d->advancedDlg = new QDialog(this);
     d->advancedWid = new QWidget(this);
     d->advUi.setupUi(d->advancedWid);
+    d->advUi.pemPassphrase->setPasswordOptionsEnabled(true);
+    d->advUi.pemPassphrase->setPasswordNotRequiredEnabled(true);
     auto layout = new QVBoxLayout(d->advancedDlg);
     layout->addWidget(d->advancedWid);
     d->advancedDlg->setLayout(layout);
@@ -149,6 +222,31 @@ void OpenfortivpnWidget::loadConfig(const NetworkManager::Setting::Ptr &setting)
         d->advUi.realm->setText(realm);
     }
 
+    const QString samlPort = data.value(NM_OPENFORTIVPN_KEY_SAML_PORT);
+    d->advUi.samlPort->setValue(samlPort.isEmpty() ? NM_OPENFORTIVPN_SAML_PORT_DEFAULT : samlPort.toInt());
+    d->advUi.otpDelay->setValue(data.value(NM_OPENFORTIVPN_KEY_OTP_DELAY).toInt());
+    d->advUi.persistent->setValue(data.value(NM_OPENFORTIVPN_KEY_PERSISTENT).toInt());
+
+    const int minTls = d->advUi.minTls->findText(data.value(NM_OPENFORTIVPN_KEY_MIN_TLS));
+    d->advUi.minTls->setCurrentIndex(qMax(minTls, 0));
+
+    for (const auto &o : boolOpts) {
+        const QString v = data.value(QLatin1String(o.key));
+        // mesmos valores que o serviço aceita (insecure-ssl antigo era "yes")
+        (d->advUi.*o.box)->setChecked(v.isEmpty() ? o.def : QStringList{QStringLiteral("1"), QStringLiteral("yes"), QStringLiteral("true"), QStringLiteral("on")}.contains(v));
+    }
+    for (const auto &o : textOpts) {
+        (d->advUi.*o.edit)->setText(data.value(QLatin1String(o.key)));
+    }
+    for (const auto &o : urlOpts) {
+        const QString v = data.value(QLatin1String(o.key));
+        if (!v.isEmpty()) {
+            (d->advUi.*o.edit)->setUrl(QUrl::fromLocalFile(v));
+        }
+    }
+
+    d->advUi.pemPassphrase->setPasswordOption(optionFromFlags(data.value(NM_OPENFORTIVPN_KEY_PEM_PASSPHRASE "-flags").toInt()));
+
     loadSecrets(setting);
 }
 
@@ -164,6 +262,11 @@ void OpenfortivpnWidget::loadSecrets(const NetworkManager::Setting::Ptr &setting
         const QString password = secrets.value(NM_OPENFORTIVPN_KEY_PASSWORD);
         if (!password.isEmpty()) {
             d->ui.password->setText(password);
+        }
+
+        const QString pem = secrets.value(NM_OPENFORTIVPN_KEY_PEM_PASSPHRASE);
+        if (!pem.isEmpty()) {
+            d->advUi.pemPassphrase->setText(pem);
         }
     }
 }
@@ -234,6 +337,42 @@ QVariantMap OpenfortivpnWidget::setting() const
     if (!d->advUi.realm->text().isEmpty()) {
         data.insert(NM_OPENFORTIVPN_KEY_REALM, d->advUi.realm->text());
     }
+
+    const int samlPort = d->advUi.samlPort->value();
+    if (samlPort != NM_OPENFORTIVPN_SAML_PORT_DEFAULT) {
+        data.insert(NM_OPENFORTIVPN_KEY_SAML_PORT, QString::number(samlPort));
+    }
+    if (d->advUi.otpDelay->value() != 0) {
+        data.insert(NM_OPENFORTIVPN_KEY_OTP_DELAY, QString::number(d->advUi.otpDelay->value()));
+    }
+    if (d->advUi.persistent->value() != 0) {
+        data.insert(NM_OPENFORTIVPN_KEY_PERSISTENT, QString::number(d->advUi.persistent->value()));
+    }
+    if (d->advUi.minTls->currentIndex() > 0) {
+        data.insert(NM_OPENFORTIVPN_KEY_MIN_TLS, d->advUi.minTls->currentText());
+    }
+    for (const auto &o : boolOpts) {
+        if ((d->advUi.*o.box)->isChecked() != o.def) {
+            data.insert(QLatin1String(o.key), (d->advUi.*o.box)->isChecked() ? QStringLiteral("1") : QStringLiteral("0"));
+        }
+    }
+    for (const auto &o : textOpts) {
+        const QString v = (d->advUi.*o.edit)->text();
+        if (!v.isEmpty()) {
+            data.insert(QLatin1String(o.key), v);
+        }
+    }
+    for (const auto &o : urlOpts) {
+        const QUrl u = (d->advUi.*o.edit)->url();
+        if (!u.isEmpty()) {
+            data.insert(QLatin1String(o.key), u.toLocalFile());
+        }
+    }
+
+    if (!d->advUi.pemPassphrase->text().isEmpty()) {
+        secrets.insert(NM_OPENFORTIVPN_KEY_PEM_PASSPHRASE, d->advUi.pemPassphrase->text());
+    }
+    data.insert(NM_OPENFORTIVPN_KEY_PEM_PASSPHRASE "-flags", QString::number(flagsFromOption(d->advUi.pemPassphrase->passwordOption())));
 
     setting.setData(data);
     setting.setSecrets(secrets);

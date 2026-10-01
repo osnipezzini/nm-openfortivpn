@@ -54,9 +54,11 @@ class VpnProcess:
         on_disconnected=None,
         on_error=None,
         on_cert_challenge=None,
+        ifname: str = "",
     ):
         self._config_file = config_file
         self._saml_port = saml_port
+        self._ifname = ifname
         self._on_connected = on_connected
         self._on_disconnected = on_disconnected
         self._on_error = on_error
@@ -78,6 +80,8 @@ class VpnProcess:
         cmd = [OPENFORTIVPN_BIN, f"--config={self._config_file}"]
         if self._saml_port:
             cmd.append(f"--saml-login={self._saml_port}")
+        if self._ifname:  # o 1.24 não aceita ifname no arquivo de config
+            cmd.append(f"--ifname={self._ifname}")
         return cmd
 
     def start(self) -> bool:
