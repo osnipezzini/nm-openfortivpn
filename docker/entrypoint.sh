@@ -36,6 +36,22 @@ if ! grep -q "add_subdirectory(openfortivpn)" "${CLONE_DIR}/vpn/CMakeLists.txt";
     sed -i '1i add_subdirectory(openfortivpn)' "${CLONE_DIR}/vpn/CMakeLists.txt"
 fi
 
+echo "==> Applying patches onto the plasma-nm clone ..."
+PATCHES_DIR="${PATCHES_DIR:-${SRC}/patches/plasma-nm}"
+if [ -d "${PATCHES_DIR}" ]; then
+    for PATCH in "${PATCHES_DIR}"/*.patch; do
+        [ -f "${PATCH}" ] || continue
+        if git -C "${CLONE_DIR}" apply --check --reverse "${PATCH}" >/dev/null 2>&1; then
+            echo "    $(basename "${PATCH}"): already applied, skipping"
+        else
+            git -C "${CLONE_DIR}" apply "${PATCH}"
+            echo "    applied $(basename "${PATCH}")"
+        fi
+    done
+else
+    echo "    no patches in ${PATCHES_DIR}, skipping"
+fi
+
 echo "==> Configuring plasma-nm..."
 rm -rf "${BUILD}"
 cmake -S "${CLONE_DIR}" -B "${BUILD}" \
@@ -48,20 +64,81 @@ cmake -S "${CLONE_DIR}" -B "${BUILD}" \
     -DBUILD_TESTING=OFF
 
 echo "==> Building ${TARGET}..."
-cmake --build "${BUILD}" --target "${TARGET}" -j"$(nproc)"
+if [[ "${BUILD_ALL:-0}" == "1" ]]; then
+    # Build completo do plasma-nm (todas as libs/aplicativos — inclui os patches)
+    # e instala numa árvore staged em ${DIST}/root, para copiar sobre /usr no host.
+    echo "==> BUILD_ALL=1: building the whole plasma-nm ..."
+    cmake --build "${BUILD}" -j"$(nproc)"
+    echo "==> Installing staged tree into ${DIST}/root ..."
+    DESTDIR="${DIST}/root" cmake --install "${BUILD}"
+    # paridade: também deixa o plugin ao nível de ./dist para o build-docker.sh
+    PLUGIN_FULL="$(find "${BUILD}" -name "${TARGET}.so" -print -quit)"
+    if [ -n "${PLUGIN_FULL}" ]; then
+        mkdir -p "${DIST}"
+        cp -v "${PLUGIN_FULL}" "${DIST}/"
+    fi
+    echo "==> Staged tree at ${DIST}/root/usr"
+else
+    cmake --build "${BUILD}" --target "${TARGET}" -j"$(nproc)"
 
-ARTIFACT="$(find "${BUILD}" -name "${TARGET}.so" -print -quit)"
-if [ -z "${ARTIFACT}" ]; then
-    echo "error: ${TARGET}.so not found after build" >&2
-    exit 1
+    ARTIFACT="$(find "${BUILD}" -name "${TARGET}.so" -print -quit)"
+    if [ -z "${ARTIFACT}" ]; then
+        echo "error: ${TARGET}.so not found after build" >&2
+        exit 1
+    fi
+
+    mkdir -p "${DIST}"
+    cp -v "${ARTIFACT}" "${DIST}/"
 fi
-
-mkdir -p "${DIST}"
-cp -v "${ARTIFACT}" "${DIST}/"
 
 if [ -n "${BUILD_UID:-}" ]; then
     chown -R "${BUILD_UID}:${BUILD_GID:-${BUILD_UID}}" "${DIST}"
 fi
 
 echo ""
-echo "==> Done. Plugin at: ${DIST}/$(basename "${ARTIFACT}")"
+echo "==> Done. Plugin at: ${DIST}/$(basename "${ARTIFACT:-plasmanetworkmanagement_openfortivpnui.so}")"
+
+# ------------------------------ GTK plugins (meson) ---------------------------
+echo ""
+echo "==> Building GTK plugins (meson) ..."
+GTK_SRC="${SRC}/gtk"
+GTK_BUILD="${BUILD}/gtk-build"
+
+if [ ! -d "${GTK_SRC}" ]; then
+    echo "error: ${GTK_SRC} not found" >&2
+    exit 1
+fi
+
+rm -rf "${GTK_BUILD}"
+mkdir -p "${GTK_BUILD}"
+
+echo "==> Configuring GTK plugins..."
+meson setup "${GTK_BUILD}" "${GTK_SRC}" \
+    --prefix=/usr \
+    --libdir=lib \
+    --buildtype=release \
+    -Dwith_gtk3=enabled \
+    -Dwith_gtk4=enabled
+
+echo "==> Compiling GTK plugins..."
+meson compile -C "${GTK_BUILD}"
+
+echo "==> Collecting GTK .so files..."
+mkdir -p "${DIST}"
+for so in libnm-vpn-plugin-openfortivpn.so \
+          libnm-vpn-plugin-openfortivpn-editor.so \
+          libnm-gtk4-vpn-plugin-openfortivpn-editor.so; do
+    SO_PATH="$(find "${GTK_BUILD}" -name "${so}" -type f 2>/dev/null | head -n1 || true)"
+    if [ -n "${SO_PATH}" ]; then
+        cp -v "${SO_PATH}" "${DIST}/"
+        echo "  copied: ${so}"
+    else
+        echo "  warning: ${so} not found (expected if not all GTK versions available)"
+    fi
+done
+
+if [ -n "${BUILD_UID:-}" ]; then
+    chown -R "${BUILD_UID}:${BUILD_GID:-${BUILD_UID}}" "${DIST}"
+fi
+
+echo "==> GTK plugins done"

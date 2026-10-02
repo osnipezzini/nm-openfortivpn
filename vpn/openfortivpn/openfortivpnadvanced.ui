@@ -2,136 +2,17 @@
 <ui version="4.0">
  <class>OpenfortivpnAdvancedWidget</class>
  <widget class="QWidget" name="OpenfortivpnAdvancedWidget">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>400</width>
-    <height>222</height>
-   </rect>
-  </property>
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>400</width>
-    <height>222</height>
-   </size>
-  </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Authentication</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <layout class="QGridLayout" name="gridLayout_2">
-        <item row="0" column="0">
-         <widget class="QCheckBox" name="otp">
-          <property name="text">
-           <string>Use a One-Time Password</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QCheckBox" name="tfa">
-          <property name="text">
-           <string>2FA</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="2">
-         <widget class="QCheckBox" name="saml">
-          <property name="text">
-           <string>Enable SAML login</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="title">
-      <string/>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QLabel" name="realmLabel">
-        <property name="text">
-         <string>Realm:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="realm"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QGroupBox" name="groupBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Security</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QLabel" name="trustedCertLabel">
-        <property name="text">
-         <string>Trusted certificate:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="trustedCert">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="placeholderText">
-         <string>0123456789abcdef0123456789abcdef0123456789abcdef0123456789</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
+  <property name="minimumSize"><size><width>480</width><height>340</height></size></property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <item><widget class="QTabWidget" name="tabs">
+<widget class="QWidget" name="tab_authentication"><attribute name="title"><string>Authentication</string></attribute><layout class="QFormLayout"><item row="0" column="0" colspan="2"><widget class="QCheckBox" name="otp"><property name="text"><string>Use a One-Time Password</string></property></widget></item><item row="1" column="0" colspan="2"><widget class="QCheckBox" name="tfa"><property name="text"><string>2FA</string></property></widget></item><item row="2" column="0" colspan="2"><widget class="QCheckBox" name="saml"><property name="text"><string>Enable SAML login</string></property><property name="toolTip"><string>Run a local HTTP server to handle SAML login requests.</string></property></widget></item><item row="3" column="0"><widget class="QLabel" name="label_1"><property name="text"><string>SAML port:</string></property></widget></item><item row="3" column="1"><widget class="QSpinBox" name="samlPort"><property name="toolTip"><string>Local port for the SAML login HTTP server (default 8020).</string></property><property name="minimum"><number>1</number></property><property name="maximum"><number>65535</number></property><property name="value"><number>8020</number></property></widget></item><item row="4" column="0"><widget class="QLabel" name="label_2"><property name="text"><string>OTP prompt:</string></property></widget></item><item row="4" column="1"><widget class="QLineEdit" name="otpPrompt"><property name="toolTip"><string>Search for the OTP prompt starting with this string.</string></property></widget></item><item row="5" column="0"><widget class="QLabel" name="label_3"><property name="text"><string>OTP delay (s):</string></property></widget></item><item row="5" column="1"><widget class="QSpinBox" name="otpDelay"><property name="toolTip"><string>Wait this many seconds before sending the OTP (0 = no delay).</string></property><property name="minimum"><number>0</number></property><property name="maximum"><number>3600</number></property><property name="value"><number>0</number></property></widget></item><item row="6" column="0" colspan="2"><widget class="QCheckBox" name="noFtmPush"><property name="text"><string>Do not use FTM push</string></property><property name="toolTip"><string>Do not use FTM push if the server provides the option.</string></property></widget></item><item row="7" column="0"><widget class="QLabel" name="label_4"><property name="text"><string>Realm:</string></property></widget></item><item row="7" column="1"><widget class="QLineEdit" name="realm"><property name="toolTip"><string>Use specified authentication realm.</string></property></widget></item></layout></widget><widget class="QWidget" name="tab_security"><attribute name="title"><string>Security/TLS</string></attribute><layout class="QFormLayout"><item row="0" column="0"><widget class="QLabel" name="label_5"><property name="text"><string>Trusted certificate:</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="trustedCert"><property name="toolTip"><string>Trust a gateway whose certificate matches this X509 sha256 digest.</string></property><property name="placeholderText"><string>0123456789abcdef0123456789abcdef0123456789abcdef0123456789</string></property></widget></item><item row="1" column="0"><widget class="QLabel" name="label_6"><property name="text"><string>SNI:</string></property></widget></item><item row="1" column="1"><widget class="QLineEdit" name="sni"><property name="toolTip"><string>Server name (SNI) to use in the TLS handshake instead of the host.</string></property></widget></item><item row="2" column="0" colspan="2"><widget class="QCheckBox" name="insecureSsl"><property name="text"><string>Allow insecure TLS protocols/ciphers</string></property><property name="toolTip"><string>Do not disable insecure TLS protocols/ciphers; also enables TLS 1.0 if applicable.</string></property></widget></item><item row="3" column="0"><widget class="QLabel" name="label_7"><property name="text"><string>Cipher list:</string></property></widget></item><item row="3" column="1"><widget class="QLineEdit" name="cipherList"><property name="toolTip"><string>OpenSSL ciphers to use (TLS 1.2 or lower only), e.g. AES256-GCM-SHA384.</string></property></widget></item><item row="4" column="0"><widget class="QLabel" name="label_8"><property name="text"><string>Minimum TLS:</string></property></widget></item><item row="4" column="1"><widget class="QComboBox" name="minTls"><property name="toolTip"><string>Use this minimum TLS version instead of the system default.</string></property><item><property name="text"><string>Default</string></property></item><item><property name="text"><string>1.0</string></property></item><item><property name="text"><string>1.1</string></property></item><item><property name="text"><string>1.2</string></property></item><item><property name="text"><string>1.3</string></property></item></widget></item><item row="5" column="0" colspan="2"><widget class="QCheckBox" name="seclevel1"><property name="text"><string>Lower OpenSSL security level (@SECLEVEL=1)</string></property><property name="toolTip"><string>Add @SECLEVEL=1 to the cipher list, lowering limits on DH key size. TLS 1.2 or lower only.</string></property></widget></item><item row="6" column="0"><widget class="QLabel" name="label_9"><property name="text"><string>PEM passphrase:</string></property></widget></item><item row="6" column="1"><widget class="PasswordField" name="pemPassphrase"><property name="toolTip"><string>Pass phrase for the PEM-encoded user key.</string></property><property name="passwordModeEnabled" stdset="0"><bool>true</bool></property></widget></item></layout></widget><widget class="QWidget" name="tab_routing"><attribute name="title"><string>Routing &amp; DNS</string></attribute><layout class="QFormLayout"><item row="0" column="0" colspan="2"><widget class="QCheckBox" name="setRoutes"><property name="text"><string>Configure routes when the tunnel is up</string></property><property name="toolTip"><string>Set if openfortivpn should configure routes when tunnel is up.</string></property></widget></item><item row="1" column="0" colspan="2"><widget class="QCheckBox" name="halfInternetRoutes"><property name="text"><string>Half-internet routes</string></property><property name="toolTip"><string>Add 0.0.0.0/1 and 128.0.0.0/1 routes with higher priority instead of replacing the default route.</string></property></widget></item><item row="2" column="0" colspan="2"><widget class="QCheckBox" name="setDns"><property name="text"><string>Configure DNS servers and search list</string></property><property name="toolTip"><string>Add DNS name servers and domain search list to /etc/resolv.conf.</string></property></widget></item><item row="3" column="0" colspan="2"><widget class="QCheckBox" name="useResolvconf"><property name="text"><string>Use resolvconf if available</string></property><property name="toolTip"><string>If possible use resolvconf to update /etc/resolv.conf.</string></property></widget></item><item row="4" column="0" colspan="2"><widget class="QCheckBox" name="pppdUsePeerdns"><property name="text"><string>Ask pppd for peer DNS</string></property><property name="toolTip"><string>Ask the peer ppp server for DNS server addresses and make pppd rewrite /etc/resolv.conf.</string></property></widget></item></layout></widget><widget class="QWidget" name="tab_pppd"><attribute name="title"><string>pppd</string></attribute><layout class="QFormLayout"><item row="0" column="0"><widget class="QLabel" name="label_10"><property name="text"><string>Log file:</string></property></widget></item><item row="0" column="1"><widget class="KUrlRequester" name="pppdLog"><property name="toolTip"><string>Set pppd in debug mode and save its logs into this file.</string></property></widget></item><item row="1" column="0"><widget class="QLabel" name="label_11"><property name="text"><string>Plugin:</string></property></widget></item><item row="1" column="1"><widget class="KUrlRequester" name="pppdPlugin"><property name="toolTip"><string>Use this pppd plugin instead of configuring resolver and routes directly.</string></property></widget></item><item row="2" column="0"><widget class="QLabel" name="label_12"><property name="text"><string>ipparam:</string></property></widget></item><item row="2" column="1"><widget class="QLineEdit" name="pppdIpparam"><property name="toolTip"><string>Extra parameter passed to the ip-up, ip-pre-up and ip-down scripts (see pppd(8)).</string></property></widget></item><item row="3" column="0"><widget class="QLabel" name="label_13"><property name="text"><string>Interface name:</string></property></widget></item><item row="3" column="1"><widget class="QLineEdit" name="pppdIfname"><property name="toolTip"><string>Set the pppd interface name, if supported by pppd.</string></property></widget></item><item row="4" column="0"><widget class="QLabel" name="label_14"><property name="text"><string>Call name:</string></property></widget></item><item row="4" column="1"><widget class="QLineEdit" name="pppdCall"><property name="toolTip"><string>Move most pppd options to /etc/ppp/peers/&lt;name&gt; and invoke pppd with 'call &lt;name&gt;'.</string></property></widget></item><item row="5" column="0" colspan="2"><widget class="QCheckBox" name="pppdAcceptRemote"><property name="text"><string>Accept remote IP (ipcp-accept-remote)</string></property><property name="toolTip"><string>Invoke pppd with 'ipcp-accept-remote'. Disable for pppd &lt; 2.5.0.</string></property></widget></item></layout></widget><widget class="QWidget" name="tab_other"><attribute name="title"><string>Other</string></attribute><layout class="QFormLayout"><item row="0" column="0"><widget class="QLabel" name="label_15"><property name="text"><string>Bind interface:</string></property></widget></item><item row="0" column="1"><widget class="QLineEdit" name="ifname"><property name="toolTip"><string>Bind to this network interface.</string></property></widget></item><item row="1" column="0"><widget class="QLabel" name="label_16"><property name="text"><string>Reconnect every (s):</string></property></widget></item><item row="1" column="1"><widget class="QSpinBox" name="persistent"><property name="toolTip"><string>Run the VPN persistently and try to reconnect every N seconds when dropping out (0 = off).</string></property><property name="minimum"><number>0</number></property><property name="maximum"><number>86400</number></property><property name="value"><number>0</number></property></widget></item></layout></widget>
+   </widget></item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget><class>KUrlRequester</class><extends>QWidget</extends><header>kurlrequester.h</header></customwidget>
+  <customwidget><class>PasswordField</class><extends>QLineEdit</extends><header>passwordfield.h</header></customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

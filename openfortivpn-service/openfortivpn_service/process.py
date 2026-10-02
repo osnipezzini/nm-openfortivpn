@@ -6,7 +6,9 @@ roda num GLib.MainLoop, e não num event loop asyncio).
 """
 from __future__ import annotations
 import logging
+import os
 import re
+import shutil
 import signal
 
 import gi
@@ -18,7 +20,11 @@ from openfortivpn_service.saml import extract_saml_url, BrowserOpener
 
 log = logging.getLogger(__name__)
 
-OPENFORTIVPN_BIN = "/usr/bin/openfortivpn"
+# O daemon roda como root: procure apenas nos diretórios do sistema, com
+# preferência por instalações compiladas em /usr/local (make install).
+OPENFORTIVPN_BIN = os.environ.get("NM_OPENFORTIVPN_BIN") or shutil.which(
+    "openfortivpn", path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+) or "/usr/bin/openfortivpn"
 
 # Hash SHA-256 sugerido pelo openfortivpn nas linhas:
 #   --trusted-cert d3d990146e4e4fd1ffa9db61f310143e6a241f5bfc0f2d56fdadeae76bac8509
@@ -54,9 +60,11 @@ class VpnProcess:
         on_disconnected=None,
         on_error=None,
         on_cert_challenge=None,
+        ifname: str = "",
     ):
         self._config_file = config_file
         self._saml_port = saml_port
+        self._ifname = ifname
         self._on_connected = on_connected
         self._on_disconnected = on_disconnected
         self._on_error = on_error
@@ -78,6 +86,8 @@ class VpnProcess:
         cmd = [OPENFORTIVPN_BIN, f"--config={self._config_file}"]
         if self._saml_port:
             cmd.append(f"--saml-login={self._saml_port}")
+        if self._ifname:  # o 1.24 não aceita ifname no arquivo de config
+            cmd.append(f"--ifname={self._ifname}")
         return cmd
 
     def start(self) -> bool:

@@ -45,6 +45,9 @@ def run_service(bus_name: str | None = None):
     log.info("Serviço D-Bus registrado com sucesso: %s", name)
 
     loop = GLib.MainLoop()
+    # libnm pede o encerramento após a desconexão ou quando o cliente NM some.
+    # Sem tratar este sinal, o daemon conserva módulos antigos após reinstalar.
+    plugin.connect("quit", lambda _plugin: loop.quit())
 
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, loop.quit)
     GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, loop.quit)
@@ -52,5 +55,6 @@ def run_service(bus_name: str | None = None):
     try:
         loop.run()
     finally:
+        plugin.do_disconnect()
         loop.quit()
     return 0

@@ -5,8 +5,11 @@ O daemon roda como root; grava em /var/lib/nm-openfortivpn/trusted-certs.json.
 Em execuções sem privilégio (testes/dev) usa ~/.config/nm-openfortivpn/trusted-certs.json.
 """
 from __future__ import annotations
+import hashlib
 import json
 import logging
+import socket
+import ssl
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -21,7 +24,7 @@ def _store_path() -> Path:
         probe.write_text("")
         probe.unlink()
         return _JSON_PATH
-    except PermissionError:
+    except OSError:
         fallback = Path.home() / ".config" / "nm-openfortivpn" / "trusted-certs.json"
         fallback.parent.mkdir(parents=True, exist_ok=True)
         return fallback
@@ -65,6 +68,32 @@ def add_trusted(host: str, port: int | str, digest: str) -> None:
         digests.append(digest)
         _save(data)
         log.info("Certificado confiado salvo: key=%s digest=%s", key, digest[:16])
+
+
+def server_digest(host: str, port: int | str, ca_file: str = "") -> tuple[str, bool] | None:
+    """
+    (sha256 do cert do gateway, válido pela CA/hostname) — mesmo digest que o
+    openfortivpn usa em trusted-cert. None se não deu pra conectar (aí o
+    openfortivpn decide sozinho).
+    """
+    if ":" in host and str(host).rsplit(":", 1)[1].isdigit():
+        host, port = host.rsplit(":", 1)
+    port = int(port)
+    verified = ssl.create_default_context(cafile=ca_file or None)
+    unverified = ssl.create_default_context()
+    unverified.check_hostname = False
+    unverified.verify_mode = ssl.CERT_NONE
+    for ctx, ok in ((verified, True), (unverified, False)):
+        try:
+            with socket.create_connection((host, port), timeout=10) as sock, \
+                    ctx.wrap_socket(sock, server_hostname=host) as tls:
+                return hashlib.sha256(tls.getpeercert(binary_form=True)).hexdigest(), ok
+        except ssl.SSLCertVerificationError:
+            continue
+        except (OSError, ValueError) as e:
+            log.info("pré-checagem do certificado de %s:%s falhou: %s", host, port, e)
+            return None
+    return None
 
 
 if __name__ == "__main__":

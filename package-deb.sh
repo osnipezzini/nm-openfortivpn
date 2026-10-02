@@ -3,6 +3,8 @@
 #
 # O pacote contém:
 #   · plugin plasma  plasmanetworkmanagement_openfortivpnui.so
+#   · plugins GTK    libnm-vpn-plugin-openfortivpn.so + editores (GTK3, GTK4)
+#   · wrapper auth-dialog /usr/libexec/nm-openfortivpn-auth-dialog
 #   · .name do NetworkManager (program=/usr/bin/openfortivpn-service)
 #   · wrappers /usr/bin/openfortivpn-service e /usr/bin/openfortivpn-nm
 #   · pacotes python openfortivpn_service + openfortivpn_common no dist-packages
@@ -32,16 +34,19 @@ OUT_DIR="dist"
 
 PLUGIN_SO="dist/plasmanetworkmanagement_openfortivpnui.so"
 PLUGIN_DEST="usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn"
+GTK_SO_BASE="dist/libnm-vpn-plugin-openfortivpn"
+GTK_DEST="usr/lib/NetworkManager"
 NAME_DEST="usr/lib/NetworkManager/VPN"
 PY_DEST="usr/lib/python3/dist-packages"
 WRAPPER_SERVICE="usr/bin/openfortivpn-service"
 WRAPPER_NM="usr/bin/openfortivpn-nm"
+WRAPPER_AUTH="usr/libexec/nm-openfortivpn-auth-dialog"
 POLKIT_DEST="usr/share/polkit-1/actions"
 DBUS_DEST="etc/dbus-1/system.d"
 SYSTEMD_DEST="lib/systemd/system"
 
-# ------------------------------ 1. plugin .so ------------------------------
-echo "==> [1/6] Plugin plasma .so"
+# ------------------------------ 1. plugins .so (plasma + GTK) ----------------
+echo "==> [1/6] Plugins .so (plasma + GTK)"
 if [ ! -f "${PLUGIN_SO}" ] && [ "${NO_BUILD}" = "0" ]; then
     bash ./build-docker.sh
 elif [ ! -f "${PLUGIN_SO}" ]; then
@@ -50,12 +55,32 @@ elif [ ! -f "${PLUGIN_SO}" ]; then
 fi
 echo "  ok: ${PLUGIN_SO}"
 
+[ -f "${GTK_SO_BASE}.so" ] || echo "  warning: ${GTK_SO_BASE}.so não encontrado — pacote sem editor GTK"
+
 # ------------------------------ 2. árvore ----------------------------------
 echo "==> [2/6] Montando árvore do pacote"
 ROOT="$(mktemp -d /tmp/openfortivpn-nm-deb.XXXXXX)"
 trap 'rm -rf "${ROOT}"' EXIT
 
 install -m755 -D "${PLUGIN_SO}" "${ROOT}/${PLUGIN_DEST}/plasmanetworkmanagement_openfortivpnui.so"
+
+# Install GTK plugins if they exist
+if [ -f "${GTK_SO_BASE}.so" ]; then
+    install -m644 -D "${GTK_SO_BASE}.so" "${ROOT}/${GTK_DEST}/libnm-vpn-plugin-openfortivpn.so"
+fi
+if [ -f "${GTK_SO_BASE}-editor.so" ]; then
+    install -m644 -D "${GTK_SO_BASE}-editor.so" "${ROOT}/${GTK_DEST}/libnm-vpn-plugin-openfortivpn-editor.so"
+fi
+if [ -f "dist/libnm-gtk4-vpn-plugin-openfortivpn-editor.so" ]; then
+    install -m644 -D "dist/libnm-gtk4-vpn-plugin-openfortivpn-editor.so" "${ROOT}/${GTK_DEST}/libnm-gtk4-vpn-plugin-openfortivpn-editor.so"
+fi
+
+mkdir -p "${ROOT}/usr/libexec"
+cat > "${ROOT}/${WRAPPER_AUTH}" <<'EOF'
+#!/usr/bin/env bash
+exec /usr/bin/python3 -m openfortivpn_service.auth_dialog "$@"
+EOF
+chmod 755 "${ROOT}/${WRAPPER_AUTH}"
 
 install -m644 -D openfortivpn-service/data/nm-openfortivpn-service.name "${ROOT}/${NAME_DEST}/nm-openfortivpn-service.name"
 
@@ -102,7 +127,8 @@ Version: ${VERSION}
 Section: net
 Priority: optional
 Architecture: ${ARCH}
-Depends: python3 (>= 3.11), python3-gi, gir1.2-nm-1.0, network-manager, openfortivpn
+Depends: python3 (>= 3.11), python3-gi, gir1.2-gtk-3.0, gir1.2-nm-1.0, network-manager, openfortivpn
+Recommends: libnma0, libnma-gtk4-0, kdialog | zenity
 Maintainer: Osni Pezzini <osni@example.com>
 Description: openfortivpn VPN support for Plasma NetworkManager
  Plasma widget (editor de conexão + SAML) e backend de serviço D-Bus para

@@ -8,6 +8,7 @@ dependencies = [
 
 [project.scripts]
 openfortivpn-service = "openfortivpn_service.cli:main"
+nm-openfortivpn-auth-dialog = "openfortivpn_service.auth_dialog:main"
 
 [project.entry-points."nm-vpn-plugin"]
 openfortivpn = "openfortivpn_service.nm.plugin:OpenFortivpnPlugin"

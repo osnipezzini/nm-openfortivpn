@@ -6,3 +6,11 @@ name=openfortivpn
 service=org.freedesktop.NetworkManager.openfortivpn
 program=/usr/bin/openfortivpn-service
 supports-multiple-connections=true
+
+[libnm]
+plugin=/usr/lib/NetworkManager/libnm-vpn-plugin-openfortivpn.so
+
+[GNOME]
+auth-dialog=/usr/libexec/nm-openfortivpn-auth-dialog
+supports-external-ui-mode=true
+supports-hints=true

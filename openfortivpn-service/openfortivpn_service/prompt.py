@@ -1,23 +1,25 @@
 """
-Dialogo com o usuário, exibido na sessão gráfica ativa (KDE: kdialog).
+Dialogo com o usuário, exibido na sessão gráfica ativa (kdialog ou zenity).
 
 O daemon é root; o dialogo é disparado no systemd --user do usuário da sessão
 gráfica detectado via loginctl (mecanismo análogo ao BrowserOpener).
 """
 from __future__ import annotations
 import logging
+import os
 import subprocess
 
 log = logging.getLogger(__name__)
 
 _DIALOG = "/usr/bin/kdialog"
+_ZENITY = "/usr/bin/zenity"
 
 
 def _desktop_session() -> tuple[str | None, str]:
     """Retorna (usuário, uid) da sessão gráfica ativa via loginctl."""
     try:
         result = subprocess.run(
-            ["loginctl", "list-sessions", "--no-legend"],
+            ["loginctl", "list-sessions", "--no-legend", "--no-pager"],
             capture_output=True, text=True, timeout=5,
         )
     except (FileNotFoundError, OSError):
@@ -26,11 +28,29 @@ def _desktop_session() -> tuple[str | None, str]:
         return None, ""
     for line in result.stdout.splitlines():
         parts = line.split()
-        if len(parts) < 6:
+        if not parts:
             continue
-        _sid, uid, user, seat, _leader, cls = parts[:6]
-        if cls == "user" and seat and seat != "-":
-            return user, uid
+        # A saída de `list-sessions` não inclui Class (a posição 6 é TTY),
+        # então consulte propriedades estruturadas em vez de assumir colunas.
+        try:
+            session = subprocess.run(
+                ["loginctl", "show-session", parts[0], "--no-pager",
+                 "-p", "Name", "-p", "User", "-p", "Seat", "-p", "Type",
+                 "-p", "Class", "-p", "Active"],
+                capture_output=True, text=True, timeout=5,
+            )
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            continue
+        if session.returncode != 0:
+            continue
+        props = dict(
+            line.split("=", 1) for line in session.stdout.splitlines() if "=" in line
+        )
+        if (props.get("Active") == "yes" and props.get("Class") == "user"
+                and props.get("Seat") not in (None, "")
+                and props.get("Type") in ("x11", "wayland")
+                and props.get("User", "").isdigit()):
+            return props.get("Name"), props["User"]
     return None, ""
 
 
@@ -52,16 +72,29 @@ def ask_trust_cert(host: str, digest: str) -> tuple[bool, bool]:
         "Confia neste certificado e deseja conectar?"
     )
 
+    title = "Conexão VPN (openfortivpn)"
+    label = "Salvar o hash no trusted-cert (conexões futuras)"
+    if os.path.exists(_DIALOG):
+        dialog = [_DIALOG, "--title", title, "--separate-output", "--checklist", text,
+                  "persist", label, "on"]
+    elif os.path.exists(_ZENITY):
+        dialog = [_ZENITY, "--list", "--checklist", "--title", title, "--text", text,
+                  "--column", "", "--column", "id", "--column", "Opção",
+                  "--hide-column=2", "--print-column=2", "TRUE", "persist", label]
+    else:
+        log.error("nem %s nem %s encontrados", _DIALOG, _ZENITY)
+        return False, False
+
     cmd = [
-        "systemd-run", "--user", "--collect", "-M", f"{uid}@",
-        _DIALOG, "--title", "Conexão VPN (openfortivpn)",
-        "--checklist", text,
-        "persist", "Salvar o hash no trusted-cert (conexões futuras)", "on",
+        # --wait --pipe: espera a resposta e repassa exit code/stdout do diálogo
+        # (sem isso o systemd-run retorna 0 na hora e a resposta se perde).
+        "systemd-run", "--user", "--collect", "--wait", "--pipe", "--quiet",
+        "-M", f"{uid}@", *dialog,
     ]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     except FileNotFoundError:
-        log.error("%s não encontrado", _DIALOG)
+        log.error("systemd-run não encontrado")
         return False, False
     except subprocess.TimeoutExpired:
         log.warning("ecg na pergunta sobre o certificado (%s)", host)
@@ -71,7 +104,7 @@ def ask_trust_cert(host: str, digest: str) -> tuple[bool, bool]:
         log.info("Usuário não confiou no certificado do host %s", host)
         return False, False
 
-    selected = set(result.stdout.split())
+    selected = {s.strip('"') for s in result.stdout.replace("|", " ").split()}
     persist = "persist" in selected
     log.info("Usuário confiou no certificado do host %s (persistir=%s)", host, persist)
     return True, persist
