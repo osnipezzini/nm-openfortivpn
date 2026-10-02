@@ -19,7 +19,7 @@ def _desktop_session() -> tuple[str | None, str]:
     """Retorna (usuário, uid) da sessão gráfica ativa via loginctl."""
     try:
         result = subprocess.run(
-            ["loginctl", "list-sessions", "--no-legend"],
+            ["loginctl", "list-sessions", "--no-legend", "--no-pager"],
             capture_output=True, text=True, timeout=5,
         )
     except (FileNotFoundError, OSError):
@@ -28,11 +28,29 @@ def _desktop_session() -> tuple[str | None, str]:
         return None, ""
     for line in result.stdout.splitlines():
         parts = line.split()
-        if len(parts) < 6:
+        if not parts:
             continue
-        _sid, uid, user, seat, _leader, cls = parts[:6]
-        if cls == "user" and seat and seat != "-":
-            return user, uid
+        # A saída de `list-sessions` não inclui Class (a posição 6 é TTY),
+        # então consulte propriedades estruturadas em vez de assumir colunas.
+        try:
+            session = subprocess.run(
+                ["loginctl", "show-session", parts[0], "--no-pager",
+                 "-p", "Name", "-p", "User", "-p", "Seat", "-p", "Type",
+                 "-p", "Class", "-p", "Active"],
+                capture_output=True, text=True, timeout=5,
+            )
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            continue
+        if session.returncode != 0:
+            continue
+        props = dict(
+            line.split("=", 1) for line in session.stdout.splitlines() if "=" in line
+        )
+        if (props.get("Active") == "yes" and props.get("Class") == "user"
+                and props.get("Seat") not in (None, "")
+                and props.get("Type") in ("x11", "wayland")
+                and props.get("User", "").isdigit()):
+            return props.get("Name"), props["User"]
     return None, ""
 
 

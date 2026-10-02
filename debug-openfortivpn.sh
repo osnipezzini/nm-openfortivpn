@@ -12,7 +12,7 @@ set -u
 SERVICE_INSTALL_DIR="${NM_OPENFORTIVPN_INSTALL_DIR:-/opt/openfortivpn-nm}"
 PYTHON_DIR="${SERVICE_INSTALL_DIR}/python"
 PLUGIN_SO="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn/plasmanetworkmanagement_openfortivpnui.so"
-NAME_FILE="/usr/share/NetworkManager/VPN/nm-openfortivpn-service.name"
+NAME_FILE="/usr/lib/NetworkManager/VPN/nm-openfortivpn-service.name"
 DBUS_POLICY="/etc/dbus-1/system.d/org.freedesktop.NetworkManager.openfortivpn.conf"
 POLKIT="/usr/share/polkit-1/actions/nm-openfortivpn-service.conf"
 UNIT="/etc/systemd/system/nm-openfortivpn-service.service"

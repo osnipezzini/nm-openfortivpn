@@ -6,7 +6,9 @@ roda num GLib.MainLoop, e não num event loop asyncio).
 """
 from __future__ import annotations
 import logging
+import os
 import re
+import shutil
 import signal
 
 import gi
@@ -18,7 +20,11 @@ from openfortivpn_service.saml import extract_saml_url, BrowserOpener
 
 log = logging.getLogger(__name__)
 
-OPENFORTIVPN_BIN = "/usr/bin/openfortivpn"
+# O daemon roda como root: procure apenas nos diretórios do sistema, com
+# preferência por instalações compiladas em /usr/local (make install).
+OPENFORTIVPN_BIN = os.environ.get("NM_OPENFORTIVPN_BIN") or shutil.which(
+    "openfortivpn", path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+) or "/usr/bin/openfortivpn"
 
 # Hash SHA-256 sugerido pelo openfortivpn nas linhas:
 #   --trusted-cert d3d990146e4e4fd1ffa9db61f310143e6a241f5bfc0f2d56fdadeae76bac8509

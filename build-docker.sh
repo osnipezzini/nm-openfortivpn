@@ -47,7 +47,8 @@ done
 
 # ----------------------------- configuração -------------------------------
 plugin_dir="/usr/lib/x86_64-linux-gnu/qt6/plugins/plasma/network/vpn"
-name_dir="/usr/share/NetworkManager/VPN"
+nm_lib_dir="/usr/lib/NetworkManager"
+name_dir="/usr/lib/NetworkManager/VPN"
 dbus_policy_dir="/etc/dbus-1/system.d"
 polkit_dir="/usr/share/polkit-1/actions"
 unit_dir="/etc/systemd/system"
@@ -111,8 +112,8 @@ install_plugin() {
 }
 
 install_gtk_plugins() {
-    echo "==> Plugins GTK (libnm-vpn-plugin-openfortivpn* em /usr/lib/NetworkManager) ..."
-    local gtk_dir="/usr/lib/NetworkManager"
+    echo "==> Plugins GTK (libnm-vpn-plugin-openfortivpn* em ${nm_lib_dir}) ..."
+    local gtk_dir="${nm_lib_dir}"
     sudo mkdir -p "${gtk_dir}"
 
     local count=0
@@ -151,13 +152,8 @@ install_name() {
     if [ -f "${name_dir}/nm-fortisslvpn-service.name" ]; then
         sudo rm -f "${name_dir}/nm-fortisslvpn-service.name"
     fi
-    sudo tee "${name_dir}/nm-openfortivpn-service.name" > /dev/null << 'EOF'
-[VPN Connection]
-name=openfortivpn
-service=org.freedesktop.NetworkManager.openfortivpn
-program=/usr/bin/openfortivpn-service
-supports-multiple-connections=true
-EOF
+    sudo install -m644 -D "openfortivpn-service/data/nm-openfortivpn-service.name" \
+        "${name_dir}/nm-openfortivpn-service.name"
     ok ".name instalado → ${name_dir}"
 }
 
@@ -196,6 +192,8 @@ EOF
 export PYTHONPATH="${PYTHON_DIR}\${PYTHONPATH:+:\${PYTHONPATH}}"
 exec /usr/bin/python3 -m openfortivpn_service.cli --nm-dbus-service "\$@"
 EOF
+    sudo install -m755 "${NM_WRAP}" "${NM_PROG}"
+    rm -f "${NM_WRAP}"
     ok "${SERVICE_PROG} e ${NM_PROG} criados"
 }
 
@@ -291,6 +289,10 @@ install_full_plasma() {
 restart_services() {
     echo "==> Reiniciando serviços ..."
     sudo systemctl daemon-reload || true
+    sudo systemctl stop nm-openfortivpn-service 2>/dev/null || true
+    # Versões anteriores ignoravam o sinal quit de libnm e sobreviviam ao NM.
+    # Encerre somente os daemons Python deste plugin para carregar os arquivos novos.
+    sudo pkill -TERM -f '^/usr/bin/python3 -m openfortivpn_service[.]cli .*--(bus-name|nm-dbus-service)(=| |$)' || true
     sudo systemctl restart NetworkManager 2>/dev/null || true
     sudo systemctl --user restart plasma-kcmshell6 2>/dev/null || true
     sudo systemctl --user restart plasmashell 2>/dev/null || true

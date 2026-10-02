@@ -51,7 +51,7 @@ class OpenFortivpnPlugin(NM.VpnServicePlugin):
     """
 
     def __init__(self, service_name: str = SERVICE_NAME):
-        super().__init__(service_name=service_name)
+        super().__init__(service_name=service_name, watch_peer=True)
         self._vpn_proc: VpnProcess | None = None
         self._connection: NM.Connection | None = None
         self._last_cfg: VpnConfig | None = None
